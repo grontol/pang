@@ -1,0 +1,31 @@
+{
+    "name": "y",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "test": "vitest run",
+        "test-compiler": "vitest parser run",
+        "parse": "bun src/transform-test.ts"
+    },
+    "devDependencies": {
+        "@babel/generator": "^7.26.5",
+        "@babel/parser": "^7.26.5",
+        "@babel/types": "^7.26.5",
+        "@types/babel-generator": "^6.25.8",
+        "@types/css": "^0.0.38",
+        "@types/node": "^22.10.6",
+        "babel-walk": "^3.0.1",
+        "typescript": "^5.7.3",
+        "vite": "^6.0.7",
+        "vite-plugin-checker": "^0.8.0",
+        "vitest": "^2.1.8"
+    },
+    "type": "module",
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "css": "^3.0.0"
+    }
+}
