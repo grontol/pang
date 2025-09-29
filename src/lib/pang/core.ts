@@ -24,6 +24,7 @@ export class ElNode implements PNode {
     private effect!: Effect
     private parentEffect?: Effect
     
+    private transitionRunner: TransitionRunner | null = null
     private transition: Transition | null = null
     
     // Init field
@@ -72,8 +73,11 @@ export class ElNode implements PNode {
         
         parent.insertBefore(this.el, before)
         
-        if (this.transition) {
-            setTimeout(this.doInTransition.bind(this), 0)
+        if (this.transitionRunner) {
+            setTimeout(() => {
+                this.transition = this.transitionRunner!(this.el as any)
+                this.doInTransition()
+            }, 0)
         }
     }
     
@@ -222,7 +226,7 @@ export class ElNode implements PNode {
                     
                     if (deps.size > 0) {
                         const effect = effectInternal(() => {
-                            this.transition = attr()(this.el)
+                            this.transitionRunner = attr()
                         }, {
                             deps,
                             runOnInit: false,
@@ -232,7 +236,7 @@ export class ElNode implements PNode {
                         this.effect.addChild(effect)
                     }
                     
-                    this.transition = value(this.el)
+                    this.transitionRunner = value
                 }
                 else {
                     throw new Error("Unreachable : transition attr should be wrapped with arrow")
@@ -1031,7 +1035,12 @@ class CompNode implements PNode {
         }
         
         popContextOwner()
-        this.lifecycle.onMount?.()
+        
+        if (this.lifecycle.onMount) {
+            setTimeout(() => {
+                this.lifecycle.onMount?.()
+            })
+        }
     }
     
     hydrate(parent: ParentNode, index: number, parentEffect: Effect): number {
