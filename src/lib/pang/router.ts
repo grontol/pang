@@ -1,5 +1,5 @@
 import { ElNode, PrimitiveNode, ReplaceableNode, createCompNode, createTextNode } from "./core.js"
-import { state } from "./reactive.js"
+import { derived, state } from "./reactive.js"
 
 export type RouteParam = {
     path?: Record<string, string>,
@@ -20,6 +20,9 @@ type RouterItem = {
 }
 
 const activePath = state<string[]>([])
+const activePathString = derived(() => '/' + activePath.value.join("/"))
+
+let globalReload: (() => void) | null = null
 
 export function Router(configs: RouterConfig[]): JSX.Component {
     const node = new ReplaceableNode()
@@ -77,6 +80,7 @@ export function Router(configs: RouterConfig[]): JSX.Component {
         }
     }
     
+    globalReload = reload
     reload()
     
     window.onhashchange = () => {
@@ -100,12 +104,28 @@ export function formatUrlPath(path: string, withHash = true) {
     }
 }
 
-export function goto(path: string) {
-    window.location.hash = formatUrlPath(path, false)
+export function goto(path: string, pushHistory = true) {
+    if (pushHistory) {
+        window.location.hash = formatUrlPath(path, false)
+    }
+    else {
+        const oldPath = trimAnyChar(window.location.hash, "#/", true, true)
+        const newPath = trimAnyChar(path, "#/", true, true)
+        
+        if (oldPath !== newPath) {        
+            const newUrl = trimAnyChar(window.location.pathname, "/", true, true) + formatUrlPath(path, true)
+            history.replaceState(null, "", newUrl)
+            globalReload?.()
+        }
+    }
 }
 
 export function isActivePath(path: string) {
     return matchPath(activePath.value, splitPath(trimAnyChar(path, "#/")))
+}
+
+export function getActivePathStore(): Obs<string> {
+    return activePathString
 }
 
 function matchPath(paths: string[], patterns: string[]) {
@@ -168,25 +188,29 @@ function splitPath(path: string) {
     return trimAnyChar(path, '/').split('/').filter(x => !!x)
 }
 
-function trimAnyChar(path: string, chars: string) {
+function trimAnyChar(path: string, chars: string, doStart = true, doEnd = true) {
     let start = 0
     let end = path.length
     
-    for (let a = 0; a < path.length; a++) {
-        if (chars.includes(path[a])) {
-            start++
-        }
-        else {
-            break
+    if (doStart) {
+        for (let a = 0; a < path.length; a++) {
+            if (chars.includes(path[a])) {
+                start++
+            }
+            else {
+                break
+            }
         }
     }
     
-    for (let a = path.length - 1; a > start; a--) {
-        if (chars.includes(path[a])) {
-            end--
-        }
-        else {
-            break
+    if (doEnd) {
+        for (let a = path.length - 1; a > start; a--) {
+            if (chars.includes(path[a])) {
+                end--
+            }
+            else {
+                break
+            }
         }
     }
     
