@@ -1647,8 +1647,23 @@ export function foreach<T extends readonly any[], U extends JSX.Element>(
 }
 
 export function Dynamic<T extends Record<string, any>>(props: { comp: JSX.Component<T> } & T): JSX.Element {
-    const { comp, children, ...rest } = props
-    return new CompNode(comp as PComponent, rest, children) as any
+    pushDeps()
+    const comp = props.comp
+    const deps = popDeps()
+    
+    const { comp: _, children, ...rest } = props
+    const res = new ReplaceableNode(new CompNode(comp as PComponent, rest, children) as any)
+    
+    if (deps && deps.size > 0) {
+        effectInternal(() => {
+            res.replace(new CompNode(props.comp as PComponent, rest, children) as any)
+        }, {
+            deps,
+            runOnInit: false,
+        })
+    }
+    
+    return res
 }
 
 export function For<T extends readonly any[], U extends JSX.Element>(props: {
