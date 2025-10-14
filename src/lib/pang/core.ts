@@ -30,6 +30,7 @@ export class ElNode implements PNode {
     // Init field
     private attrs: Record<string, MayFn<unknown>> | null
     private styleId: string | null = null
+    private eventListeners = new Map<string, any | null>()
     
     constructor(tagName: string, attrs: Record<string, MayFn<unknown>> | null, children: MayFn<PElement>[] | null) {
         this.tagName = tagName
@@ -162,6 +163,12 @@ export class ElNode implements PNode {
         if (value === undefined) {
             this.el.removeAttribute(key)
         }
+        // Set style object
+        else if (this.el instanceof HTMLElement && key === "style" && typeof value === "object") {
+            for (const k in value) {
+                (this.el.style as any)[k] = value[k]
+            }
+        }
         else if (typeof value === 'boolean') {
             if (value) {
                 this.el.setAttribute(key, "")
@@ -171,23 +178,50 @@ export class ElNode implements PNode {
             }
         }
         else {
-            this.el.setAttribute(key, value)
-            
-            if (key === 'class' && this.styleId) {
-                this.el.classList.add(this.styleId)
+            // HACK: Why setting `value` attribute on <input/> sometime doesn't work
+            // This is a away to get around that
+            if (key === 'value' && this.el instanceof HTMLInputElement) {
+                this.el.value = value
+            }
+            else {
+                this.el.setAttribute(key, value)
+                
+                if (key === 'class' && this.styleId) {
+                    this.el.classList.add(this.styleId)
+                }
             }
         }
     }
     
     private setEvent(key: string, value: any) {
-        if (!value) return
+        if (!(this.el instanceof HTMLElement)) return
+        
+        // Remove `on` from key
+        const actualKey = key.substring(2)
+        
+        // Remove previously attached event listener
+        if (this.eventListeners.has(key)) {
+            this.el.removeEventListener(actualKey, this.eventListeners.get(key))
+            this.eventListeners.delete(key)
+        }
+        
+        // If no listener is provided, immediately return
+        // This is effectively just removes previous listeners
+        if (!value) {            
+            return
+        }
+        
+        let listener: any
         
         if (mappedEvents.includes(key)) {
-            (this.el as any)[key] = (e: any) => value(e.target.value)
+            listener = (e: any) => value(e.target.value)
         }
         else {
-            (this.el as any)[key] = value
+            listener = value
         }
+        
+        this.el.addEventListener(key.substring(2), listener)
+        this.eventListeners.set(key, listener)
     }
     
     private initAttrs(attrs: Record<string, MayFn<unknown>>) {
