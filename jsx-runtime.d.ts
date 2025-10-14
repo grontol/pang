@@ -1,7 +1,7 @@
 /// <reference lib="DOM" />
 
 declare namespace JSX {
-    type Element = HTMLElement | Node | null | undefined | string | number | Element[] | PElement | PNode
+    type Element = HTMLElement | Node | null | undefined | string | number | Element[] | PElement | PNode | Promise<HTMLElement | Node | null | undefined | string | number | Element[] | PElement | PNode>
     type ElementMap = HTMLElementTagNameMap
     
     type Tag = keyof ElementMap
@@ -24,7 +24,7 @@ declare namespace JSX {
         children: unknown  // specify children name to use
     }
     
-    type Component<T extends Record<string, any> = {}> = (props: T) => Element
+    type Component<T extends Record<string, any> = {}> = (props: T) => Element | Promise<Element>
 }
 
 declare function jsx(tag: JSX.Tag | JSX.Component, attributes: { [key: string]: any } | null, ...children: JSX.Element[]): JSX.Element

@@ -106,7 +106,7 @@ interface PNode {
 }
 
 type PElement = PNode | string | number | undefined | null | PElement[]
-type PFunctionComponent = (props?: Record<string, MayFn<unknown>> | null) => PElement
+type PFunctionComponent = (props?: Record<string, MayFn<unknown>> | null) => PElement | Promise<PElement>
 type PClassComponent = {
     new(props?: Record<string, MayFn<unknown>> | null)
     

@@ -959,7 +959,7 @@ class CompNode implements PNode {
     
     attachStyleId(id: string) {}
     
-    private init() {
+    private init(onDone: () => void) {
         const computedAttrs = {} as any
         
         for (const key in this.attrs) {
@@ -984,9 +984,8 @@ class CompNode implements PNode {
             noDeps()
             
             // @ts-ignore
-            const isClassComp = this.comp.prototype && !!this.comp.prototype['render']
-            // @ts-ignore
-            const childrenNodes = toPNodeArray(isClassComp ? new this.comp(computedAttrs).render() : this.comp(computedAttrs))
+            const nodes = this.comp(computedAttrs)
+            
             popDeps()
             const effects = popEffects()!
             
@@ -994,45 +993,84 @@ class CompNode implements PNode {
                 this.effect.addChild(e)
             }
             
-            const styleNodes: StyleNode[] = []
-            const otherNodes: PNode[] = []
-            
-            for (const c of childrenNodes) {
-                if (c instanceof StyleNode) {
-                    styleNodes.push(c)
-                }
-                else {
-                    otherNodes.push(c)
-                }
-            }
-            
-            if (styleNodes.length > 1) {
-                throw new Error("Only one style node is allowed")
-            }
-            
-            if (styleNodes.length > 0) {
-                const styleId = styleNodes[0].getId(this.comp)
+            // TODO: Too much of a HACK
+            // Check if the component is a promise
+            if (nodes instanceof Promise) {
+                nodes.then((nodes) => {
+                    const childrenNodes = toPNodeArray(nodes)
                 
-                for (const c of otherNodes) {
-                    c.attachStyleId(styleId)
-                }
+                    const styleNodes: StyleNode[] = []
+                    const otherNodes: PNode[] = []
+                    
+                    for (const c of childrenNodes) {
+                        if (c instanceof StyleNode) {
+                            styleNodes.push(c)
+                        }
+                        else {
+                            otherNodes.push(c)
+                        }
+                    }
+                    
+                    if (styleNodes.length > 1) {
+                        throw new Error("Only one style node is allowed")
+                    }
+                    
+                    if (styleNodes.length > 0) {
+                        const styleId = styleNodes[0].getId(this.comp)
+                        
+                        for (const c of otherNodes) {
+                            c.attachStyleId(styleId)
+                        }
+                    }
+                    
+                    this.children = childrenNodes
+                    onDone()
+                })
             }
-            
-            this.children = childrenNodes
+            else {
+                const childrenNodes = toPNodeArray(nodes)
+                
+                const styleNodes: StyleNode[] = []
+                const otherNodes: PNode[] = []
+                
+                for (const c of childrenNodes) {
+                    if (c instanceof StyleNode) {
+                        styleNodes.push(c)
+                    }
+                    else {
+                        otherNodes.push(c)
+                    }
+                }
+                
+                if (styleNodes.length > 1) {
+                    throw new Error("Only one style node is allowed")
+                }
+                
+                if (styleNodes.length > 0) {
+                    const styleId = styleNodes[0].getId(this.comp)
+                    
+                    for (const c of otherNodes) {
+                        c.attachStyleId(styleId)
+                    }
+                }
+                
+                this.children = childrenNodes
+                onDone()
+            }
         }
         popLifecycleOwner()
     }
     
     mount(parent: PRenderElement, before: PRenderElement | null, parentEffect: Effect) {
         pushContextOwner()
-        this.init()
-        
-        parentEffect.addChild(this.effect)
-        this.parentEffect = parentEffect
-        
-        for (const el of this.children) {
-            el.mount(parent, before, this.effect)
-        }
+        this.init(() => {
+            parentEffect.addChild(this.effect)
+            this.parentEffect = parentEffect
+            
+            for (const el of this.children) {
+                el.mount(parent, before, this.effect)
+            }
+        })
         
         popContextOwner()
         
@@ -1045,7 +1083,7 @@ class CompNode implements PNode {
     
     hydrate(parent: ParentNode, index: number, parentEffect: Effect): number {
         pushContextOwner()
-        this.init()
+        this.init(() => {})
         
         parentEffect.addChild(this.effect)
         this.parentEffect = parentEffect

@@ -13,6 +13,10 @@ export function Layout(props: { children?: JSX.Element }) {
                     href={formatUrlPath("about")}
                     class={isActivePath("about") ? "active" : ""}
                 >About</a>
+                <a
+                    href={formatUrlPath("async")}
+                    class={isActivePath("async") ? "active" : ""}
+                >Async</a>
             </nav>
             <div id="content">
                 {props.children}
