@@ -1,4 +1,4 @@
-import { ElNode, PrimitiveNode, ReplaceableNode, createCompNode, createTextNode } from "./core.js"
+import { ElNode, PrimitiveNode, ReplaceableNode, createCompNode } from "./core.js"
 import { derived, state } from "./reactive.js"
 
 export type RouteParam = {
@@ -8,11 +8,11 @@ export type RouteParam = {
 
 export type RouterConfig = {
     path: string,
-    component?: (param: RouteParam) => JSX.Element,
+    component?: RouterComponent,
     children?: RouterConfig[],
 }
 
-type RouterComponent = (param: RouteParam) => JSX.Element
+type RouterComponent = (param: RouteParam) => JSX.Element | Promise<JSX.Element>
 
 type RouterItem = {
     paths: string[],

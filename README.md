@@ -1,35 +1,72 @@
-# Pang
+# 🌿 Pang
 
-#### A very minimalistic reactive web UI framework
+### A minimalistic reactive web UI framework — made to give control back to developers
 
 > [!WARNING]
-> This software is still in development. Expect bugs and many rough edges.
+> Pang is still under active development. Expect bugs, missing features, and rough edges.
 
-This project is an attempt to give you control of your frontend web development.
+---
 
-It is common in web development to have a very complex software stack that the developer doesn't really know anymore what is happening to their code. Not only that, the frameworks keep changing their API that break (or at least deprecate) your code for a reason that might not suit your need. Your code will be very fragile because there are so many moving parts. Maybe that's okay if your aim is to make something fast (in development time) and easily (note that what i mean is easy, not simple, because the stack is very complex). But if you want a long lasting code, then you are out of luck.
+## 💡 Philosophy
 
-The approach of this project is to make the framework part of your code, so you can change it whatever you want. The framework code is very small (just a few thousands LOC). If you don't have a time to get your hands dirty, i don't recommend using this framework.
+**Pang** is an experimental reactive UI framework built with a simple goal:  
+to give developers **full control and transparency** over their frontend code.
 
-#### Syntax
+Modern frontend stacks often grow into overly complex systems where developers no longer understand what truly happens behind the scenes. Frameworks evolve rapidly, changing or deprecating APIs, introducing layers of abstraction that make your code fragile and short-lived.  
 
-The syntax is highly inspired by [SolidJS](https://www.solidjs.com/).
+If your goal is to build something *fast*, such complexity might be acceptable.  
+But if you aim for *longevity* and *deep understanding* of your codebase — Pang offers a different path.
 
-#### How reactivity works
+Pang is designed to be **small, hackable, and transparent**.  
+The entire framework is only a few thousand lines of code, so you can read, modify, and fully own it.  
+If you don’t have the time or curiosity to get your hands dirty, Pang might not be for you.
 
-Reactivity is achieved using signal based approach.
+---
 
-#### Software stacks used
+## 🧩 Syntax
 
-- Typescript
-- Vite
-- Babel (for JSX transformation)
+Pang’s syntax is highly inspired by [SolidJS](https://www.solidjs.com/), combining declarative components with a signal-based reactivity model.
 
-#### Features
+---
 
-- JSX
-- Reactive state (primitive & nested)
-- Lifecycle (onMount & onDestroy)
-- Transition (inspired by [Svelte](https://svelte.dev/))
-- Hash based client routing
-- Component scoped css
+## ⚙️ Reactivity Model
+
+Reactivity in Pang is implemented using **signals** — minimal reactive primitives that automatically propagate changes to dependent computations.  
+No virtual DOM, no complex diffing — just straightforward, dependency-tracked updates.
+
+---
+
+## 🧱 Stack & Tooling
+
+- **TypeScript** — Core implementation language  
+- **Vite** — Development bundler  
+- **Babel** — JSX transformation  
+
+---
+
+## ✨ Features
+
+- ✅ **JSX Support**  
+- ⚡ **Reactive State** — both primitive and nested  
+- 🔄 **Lifecycle Hooks** — `onMount` and `onDestroy`  
+- 🎞️ **Transitions** — inspired by [Svelte](https://svelte.dev/)  
+- 🧭 **Hash-Based Client Routing**  
+- 🎨 **Component-Scoped CSS**
+
+---
+
+## 🚧 Project Status
+
+Pang is still in its early stages and should be considered **experimental**.  
+The current focus areas include:
+
+- Improving the reactive core  
+- Simplifying JSX compilation  
+- Expanding transition and animation capabilities  
+- Experimenting with server-side rendering
+
+---
+
+## 📜 License
+
+MIT License © 2025 GrT

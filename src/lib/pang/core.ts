@@ -30,6 +30,7 @@ export class ElNode implements PNode {
     // Init field
     private attrs: Record<string, MayFn<unknown>> | null
     private styleId: string | null = null
+    private eventListeners = new Map<string, any | null>()
     
     constructor(tagName: string, attrs: Record<string, MayFn<unknown>> | null, children: MayFn<PElement>[] | null) {
         this.tagName = tagName
@@ -162,6 +163,12 @@ export class ElNode implements PNode {
         if (value === undefined) {
             this.el.removeAttribute(key)
         }
+        // Set style object
+        else if (this.el instanceof HTMLElement && key === "style" && typeof value === "object") {
+            for (const k in value) {
+                (this.el.style as any)[k] = value[k]
+            }
+        }
         else if (typeof value === 'boolean') {
             if (value) {
                 this.el.setAttribute(key, "")
@@ -171,23 +178,50 @@ export class ElNode implements PNode {
             }
         }
         else {
-            this.el.setAttribute(key, value)
-            
-            if (key === 'class' && this.styleId) {
-                this.el.classList.add(this.styleId)
+            // HACK: Why setting `value` attribute on <input/> sometime doesn't work
+            // This is a away to get around that
+            if (key === 'value' && this.el instanceof HTMLInputElement) {
+                this.el.value = value
+            }
+            else {
+                this.el.setAttribute(key, value)
+                
+                if (key === 'class' && this.styleId) {
+                    this.el.classList.add(this.styleId)
+                }
             }
         }
     }
     
     private setEvent(key: string, value: any) {
-        if (!value) return
+        if (!(this.el instanceof HTMLElement)) return
+        
+        // Remove `on` from key
+        const actualKey = key.substring(2)
+        
+        // Remove previously attached event listener
+        if (this.eventListeners.has(key)) {
+            this.el.removeEventListener(actualKey, this.eventListeners.get(key))
+            this.eventListeners.delete(key)
+        }
+        
+        // If no listener is provided, immediately return
+        // This is effectively just removes previous listeners
+        if (!value) {            
+            return
+        }
+        
+        let listener: any
         
         if (mappedEvents.includes(key)) {
-            (this.el as any)[key] = (e: any) => value(e.target.value)
+            listener = (e: any) => value(e.target.value)
         }
         else {
-            (this.el as any)[key] = value
+            listener = value
         }
+        
+        this.el.addEventListener(key.substring(2), listener)
+        this.eventListeners.set(key, listener)
     }
     
     private initAttrs(attrs: Record<string, MayFn<unknown>>) {
@@ -959,7 +993,7 @@ class CompNode implements PNode {
     
     attachStyleId(id: string) {}
     
-    private init() {
+    private init(onDone: () => void) {
         const computedAttrs = {} as any
         
         for (const key in this.attrs) {
@@ -984,9 +1018,8 @@ class CompNode implements PNode {
             noDeps()
             
             // @ts-ignore
-            const isClassComp = this.comp.prototype && !!this.comp.prototype['render']
-            // @ts-ignore
-            const childrenNodes = toPNodeArray(isClassComp ? new this.comp(computedAttrs).render() : this.comp(computedAttrs))
+            const nodes = this.comp(computedAttrs)
+            
             popDeps()
             const effects = popEffects()!
             
@@ -994,58 +1027,99 @@ class CompNode implements PNode {
                 this.effect.addChild(e)
             }
             
-            const styleNodes: StyleNode[] = []
-            const otherNodes: PNode[] = []
-            
-            for (const c of childrenNodes) {
-                if (c instanceof StyleNode) {
-                    styleNodes.push(c)
-                }
-                else {
-                    otherNodes.push(c)
-                }
-            }
-            
-            if (styleNodes.length > 1) {
-                throw new Error("Only one style node is allowed")
-            }
-            
-            if (styleNodes.length > 0) {
-                const styleId = styleNodes[0].getId(this.comp)
+            // TODO: Too much of a HACK
+            // Check if the component is a promise
+            if (nodes instanceof Promise) {
+                nodes.then((nodes) => {
+                    const childrenNodes = toPNodeArray(nodes)
                 
-                for (const c of otherNodes) {
-                    c.attachStyleId(styleId)
-                }
+                    const styleNodes: StyleNode[] = []
+                    const otherNodes: PNode[] = []
+                    
+                    for (const c of childrenNodes) {
+                        if (c instanceof StyleNode) {
+                            styleNodes.push(c)
+                        }
+                        else {
+                            otherNodes.push(c)
+                        }
+                    }
+                    
+                    if (styleNodes.length > 1) {
+                        throw new Error("Only one style node is allowed")
+                    }
+                    
+                    if (styleNodes.length > 0) {
+                        const styleId = styleNodes[0].getId(this.comp)
+                        
+                        for (const c of otherNodes) {
+                            c.attachStyleId(styleId)
+                        }
+                    }
+                    
+                    this.children = childrenNodes
+                    popLifecycleOwner()
+                    onDone()
+                })
             }
-            
-            this.children = childrenNodes
+            else {
+                const childrenNodes = toPNodeArray(nodes)
+                
+                const styleNodes: StyleNode[] = []
+                const otherNodes: PNode[] = []
+                
+                for (const c of childrenNodes) {
+                    if (c instanceof StyleNode) {
+                        styleNodes.push(c)
+                    }
+                    else {
+                        otherNodes.push(c)
+                    }
+                }
+                
+                if (styleNodes.length > 1) {
+                    throw new Error("Only one style node is allowed")
+                }
+                
+                if (styleNodes.length > 0) {
+                    const styleId = styleNodes[0].getId(this.comp)
+                    
+                    for (const c of otherNodes) {
+                        c.attachStyleId(styleId)
+                    }
+                }
+                
+                this.children = childrenNodes
+                popLifecycleOwner()
+                onDone()
+            }
         }
-        popLifecycleOwner()
     }
     
     mount(parent: PRenderElement, before: PRenderElement | null, parentEffect: Effect) {
         pushContextOwner()
-        this.init()
+        this.init(() => {
+            parentEffect.addChild(this.effect)
+            this.parentEffect = parentEffect
+            
+            for (const el of this.children) {
+                el.mount(parent, before, this.effect)
+            }
+            
+            popContextOwner()
         
-        parentEffect.addChild(this.effect)
-        this.parentEffect = parentEffect
-        
-        for (const el of this.children) {
-            el.mount(parent, before, this.effect)
-        }
-        
-        popContextOwner()
-        
-        if (this.lifecycle.onMount) {
-            setTimeout(() => {
-                this.lifecycle.onMount?.()
-            })
-        }
+            // TODO: Hacky lifecycle system, because of async component
+            if (this.lifecycle.onMount) {
+                setTimeout(() => {
+                    this.lifecycle.onMount?.()
+                })
+            }
+        })
     }
     
     hydrate(parent: ParentNode, index: number, parentEffect: Effect): number {
         pushContextOwner()
-        this.init()
+        this.init(() => {})
         
         parentEffect.addChild(this.effect)
         this.parentEffect = parentEffect
@@ -1575,8 +1649,23 @@ export function foreach<T extends readonly any[], U extends JSX.Element>(
 }
 
 export function Dynamic<T extends Record<string, any>>(props: { comp: JSX.Component<T> } & T): JSX.Element {
-    const { comp, children, ...rest } = props
-    return new CompNode(comp as PComponent, rest, children) as any
+    pushDeps()
+    const comp = props.comp
+    const deps = popDeps()
+    
+    const { comp: _, children, ...rest } = props
+    const res = new ReplaceableNode(new CompNode(comp as PComponent, rest, children) as any)
+    
+    if (deps && deps.size > 0) {
+        effectInternal(() => {
+            res.replace(new CompNode(props.comp as PComponent, rest, children) as any)
+        }, {
+            deps,
+            runOnInit: false,
+        })
+    }
+    
+    return res
 }
 
 export function For<T extends readonly any[], U extends JSX.Element>(props: {
