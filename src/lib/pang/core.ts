@@ -1058,6 +1058,7 @@ class CompNode implements PNode {
                     }
                     
                     this.children = childrenNodes
+                    popLifecycleOwner()
                     onDone()
                 })
             }
@@ -1089,10 +1090,10 @@ class CompNode implements PNode {
                 }
                 
                 this.children = childrenNodes
+                popLifecycleOwner()
                 onDone()
             }
         }
-        popLifecycleOwner()
     }
     
     mount(parent: PRenderElement, before: PRenderElement | null, parentEffect: Effect) {
@@ -1104,15 +1105,16 @@ class CompNode implements PNode {
             for (const el of this.children) {
                 el.mount(parent, before, this.effect)
             }
+            
+            popContextOwner()
+        
+            // TODO: Hacky lifecycle system, because of async component
+            if (this.lifecycle.onMount) {
+                setTimeout(() => {
+                    this.lifecycle.onMount?.()
+                })
+            }
         })
-        
-        popContextOwner()
-        
-        if (this.lifecycle.onMount) {
-            setTimeout(() => {
-                this.lifecycle.onMount?.()
-            })
-        }
     }
     
     hydrate(parent: ParentNode, index: number, parentEffect: Effect): number {
