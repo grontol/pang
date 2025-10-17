@@ -47,11 +47,12 @@ No virtual DOM, no complex diffing — just straightforward, dependency-tracked 
 ## ✨ Features
 
 - ✅ **JSX Support**  
-- ⚡ **Reactive State** — both primitive and nested  
-- 🔄 **Lifecycle Hooks** — `onMount` and `onDestroy`  
-- 🎞️ **Transitions** — inspired by [Svelte](https://svelte.dev/)  
-- 🧭 **Hash-Based Client Routing**  
-- 🎨 **Component-Scoped CSS**
+- ✅ **Reactive State** — both primitive and nested  
+- ✅ **Lifecycle Hooks** — `onMount` and `onDestroy`  
+- ✅ **Transitions** — inspired by [Svelte](https://svelte.dev/)  
+- ✅ **Hash-Based Client Routing**  
+- ✅ **Component-Scoped CSS**
+- ✅ **Async Component**
 
 ---
 
