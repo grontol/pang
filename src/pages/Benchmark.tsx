@@ -1,4 +1,5 @@
-import { foreach, state } from "@pang";
+import { state } from "@pang/reactive.js";
+import { foreach } from "@pang/core.js";
 
 export function Benchmark() {
     return Mount()

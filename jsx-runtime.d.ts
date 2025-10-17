@@ -57,7 +57,7 @@ type GlobalHtmlAttribute = {
     popover: string,
     slot: string,
     spellcheck: string,
-    style: string,
+    style: string | Partial<CSSStyleDeclaration>,
     tabindex: string,
     title: string,
     translate: string,
@@ -66,6 +66,7 @@ type GlobalHtmlAttribute = {
     transition: TransitionRunner
 } & Partial<Omit<GlobalEventHandlers, 'oninput'>> & {
     oninput?: (value: string) => void
+    onfocusout?: (this: GlobalEventHandlers, ev: FocusEvent) => any,
 }
 
 type HtmlElementAttributes = {
@@ -322,7 +323,7 @@ type HtmlElementAttributes = {
         autocomplete: string,
         checked: boolean,
         dirname: string,
-        disabled: string,
+        disabled: boolean,
         form: string,
         formaction: string,
         formenctype: string,
@@ -342,8 +343,8 @@ type HtmlElementAttributes = {
         placeholder: string,
         popovertarget: string,
         popovertargetaction: string,
-        readonly: string,
-        required: string,
+        readonly: boolean,
+        required: boolean,
         size: string,
         src: string,
         step: string,
@@ -412,6 +413,7 @@ type HtmlElementAttributes = {
         optimum: string,
         value: string,
     },
+    nav: GlobalHtmlAttribute,
     object: GlobalHtmlAttribute & {
         align: string,
         archive: string,

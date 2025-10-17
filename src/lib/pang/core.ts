@@ -984,6 +984,8 @@ class CompNode implements PNode {
     private effect = effectEmpty()
     private parentEffect?: Effect
     
+    private markerForAsync = createMarker()
+    
     constructor(comp: PComponent, attrs: Record<string, MayFn<unknown>> | null, children: MayFn<PElement>[] | null) {
         this.comp = comp
         this.name = comp.name
@@ -1058,7 +1060,11 @@ class CompNode implements PNode {
                     }
                     
                     this.children = childrenNodes
-                    popLifecycleOwner()
+                    // TODO: This is PEAK HACKING
+                    // Reassigning lifecycle from popped lifecycle, ignoring initial lifecycle completely
+                    // But hey... It works for now, with one restriction. User cannot await after calling
+                    // lifecycle related function
+                    this.lifecycle = popLifecycleOwner()!
                     onDone()
                 })
             }
@@ -1098,13 +1104,17 @@ class CompNode implements PNode {
     
     mount(parent: PRenderElement, before: PRenderElement | null, parentEffect: Effect) {
         pushContextOwner()
+        parent.insertBefore(this.markerForAsync, before)
+        
         this.init(() => {
             parentEffect.addChild(this.effect)
             this.parentEffect = parentEffect
             
             for (const el of this.children) {
-                el.mount(parent, before, this.effect)
+                el.mount(parent, this.markerForAsync, this.effect)
             }
+            
+            this.markerForAsync.remove()
             
             popContextOwner()
         
